@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureUserRecords } from "@/lib/ensure-user-records";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,19 +22,41 @@ const Auth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate("/");
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        void ensureUserRecords(session.user);
+      }
     });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        void ensureUserRecords(session.user);
+        navigate("/");
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const normalizedEmail = email.trim().toLowerCase();
+    const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
     setLoading(false);
     if (error) {
-      toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
+      toast({
+        title: "Sign in failed",
+        description:
+          error.message === "Invalid login credentials"
+            ? "Wrong email or password. If you just signed up, verify your email from the inbox first."
+            : error.message,
+        variant: "destructive",
+      });
     } else {
+      if (data.user) {
+        await ensureUserRecords(data.user);
+      }
       toast({ title: "Welcome back!" });
       navigate("/");
     }
@@ -42,23 +65,26 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedName = fullName.trim();
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
-      options: { emailRedirectTo: window.location.origin },
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: {
+          full_name: normalizedName,
+          user_type: userType,
+        },
+      },
     });
     if (error) {
       setLoading(false);
       toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
       return;
     }
-    // Create profile
-    if (data.user) {
-      await supabase.from("profiles").insert({
-        user_id: data.user.id,
-        full_name: fullName,
-        user_type: userType,
-      });
+    if (data.session?.user) {
+      await ensureUserRecords(data.session.user);
     }
     setLoading(false);
     toast({
