@@ -48,9 +48,11 @@ const Auth = () => {
       toast({
         title: "Sign in failed",
         description:
-          error.message === "Invalid login credentials"
-            ? "Wrong email or password. If you just signed up, verify your email from the inbox first."
-            : error.message,
+          error.message === "Email not confirmed"
+            ? "This email is still pending verification from an older signup. New accounts now sign in instantly."
+            : error.message === "Invalid login credentials"
+              ? "Wrong email or password."
+              : error.message,
         variant: "destructive",
       });
     } else {
@@ -85,11 +87,18 @@ const Auth = () => {
     }
     if (data.session?.user) {
       await ensureUserRecords(data.session.user);
+      setLoading(false);
+      toast({
+        title: "Account created!",
+        description: "You're signed in now.",
+      });
+      navigate("/");
+      return;
     }
     setLoading(false);
     toast({
       title: "Account created!",
-      description: "Please check your email to verify your account before signing in.",
+      description: "You can sign in right away.",
     });
     setMode("signin");
   };
