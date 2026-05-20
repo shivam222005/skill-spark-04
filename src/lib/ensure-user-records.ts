@@ -35,13 +35,14 @@ export const ensureUserRecords = async (user: User) => {
   }
 
   if (!profile) {
-    const { error: profileInsertError } = await supabase.from("profiles").insert({
-      user_id: user.id,
-      full_name: fullName,
-      user_type: userType,
-    });
+    const { error: profileInsertError } = await supabase
+      .from("profiles")
+      .upsert(
+        { user_id: user.id, full_name: fullName, user_type: userType },
+        { onConflict: "user_id", ignoreDuplicates: true },
+      );
 
-    if (profileInsertError) {
+    if (profileInsertError && profileInsertError.code !== "23505") {
       console.error("Failed to create profile", profileInsertError);
       return;
     }
@@ -60,11 +61,11 @@ export const ensureUserRecords = async (user: User) => {
     }
 
     if (!freelancer) {
-      const { error: freelancerInsertError } = await supabase.from("freelancers").insert({
-        user_id: user.id,
-      });
+      const { error: freelancerInsertError } = await supabase
+        .from("freelancers")
+        .upsert({ user_id: user.id }, { onConflict: "user_id", ignoreDuplicates: true });
 
-      if (freelancerInsertError) {
+      if (freelancerInsertError && freelancerInsertError.code !== "23505") {
         console.error("Failed to create freelancer profile", freelancerInsertError);
       }
     }
@@ -84,11 +85,11 @@ export const ensureUserRecords = async (user: User) => {
   }
 
   if (!client) {
-    const { error: clientInsertError } = await supabase.from("clients").insert({
-      user_id: user.id,
-    });
+    const { error: clientInsertError } = await supabase
+      .from("clients")
+      .upsert({ user_id: user.id }, { onConflict: "user_id", ignoreDuplicates: true });
 
-    if (clientInsertError) {
+    if (clientInsertError && clientInsertError.code !== "23505") {
       console.error("Failed to create client profile", clientInsertError);
     }
   }
