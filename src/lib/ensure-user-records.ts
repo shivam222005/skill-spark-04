@@ -85,11 +85,11 @@ export const ensureUserRecords = async (user: User) => {
   }
 
   if (!client) {
-    const { error: clientInsertError } = await supabase.from("clients").insert({
-      user_id: user.id,
-    });
+    const { error: clientInsertError } = await supabase
+      .from("clients")
+      .upsert({ user_id: user.id }, { onConflict: "user_id", ignoreDuplicates: true });
 
-    if (clientInsertError) {
+    if (clientInsertError && clientInsertError.code !== "23505") {
       console.error("Failed to create client profile", clientInsertError);
     }
   }
