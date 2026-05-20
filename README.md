@@ -20,7 +20,7 @@ SkillBridge connects world-class freelancers with clients looking to bring their
 | Frontend | React 18, TypeScript, Vite |
 | Styling | Tailwind CSS, shadcn/ui |
 | Animation | Framer Motion |
-| Backend | Lovable Cloud |
+| Backend | Managed Postgres + Auth (Supabase) |
 | Auth | Email/Password with email verification |
 | Database | PostgreSQL with RLS policies |
 
