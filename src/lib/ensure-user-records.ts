@@ -61,11 +61,11 @@ export const ensureUserRecords = async (user: User) => {
     }
 
     if (!freelancer) {
-      const { error: freelancerInsertError } = await supabase.from("freelancers").insert({
-        user_id: user.id,
-      });
+      const { error: freelancerInsertError } = await supabase
+        .from("freelancers")
+        .upsert({ user_id: user.id }, { onConflict: "user_id", ignoreDuplicates: true });
 
-      if (freelancerInsertError) {
+      if (freelancerInsertError && freelancerInsertError.code !== "23505") {
         console.error("Failed to create freelancer profile", freelancerInsertError);
       }
     }
