@@ -35,13 +35,14 @@ export const ensureUserRecords = async (user: User) => {
   }
 
   if (!profile) {
-    const { error: profileInsertError } = await supabase.from("profiles").insert({
-      user_id: user.id,
-      full_name: fullName,
-      user_type: userType,
-    });
+    const { error: profileInsertError } = await supabase
+      .from("profiles")
+      .upsert(
+        { user_id: user.id, full_name: fullName, user_type: userType },
+        { onConflict: "user_id", ignoreDuplicates: true },
+      );
 
-    if (profileInsertError) {
+    if (profileInsertError && profileInsertError.code !== "23505") {
       console.error("Failed to create profile", profileInsertError);
       return;
     }
